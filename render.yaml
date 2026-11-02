@@ -1,0 +1,15 @@
+# Render free worker (contoh, bukan wajib).
+# Di dashboard Render: New > Background Worker > connect repo ini,
+# Build: pip install -r requirements.txt
+# Start: python run_all.py
+# Isi Environment Variables di dashboard (JANGAN di repo):
+# TELEGRAM_TOKEN, ALLOWED_TELEGRAM_USER_ID, SIGNER_API_SECRET,
+# KEYSTORE_PASSWORD, ETH_RPC / BSC_RPC / BASE_RPC / POLYGON_RPC / ARBITRUM_RPC
+# (isi hanya chain yang dipakai), MAX_TX_NATIVE, DAILY_LIMIT_NATIVE
+# Catatan: tier gratis bisa tidur/restart. Bot polling tidak butuh port inbound.
+services:
+  - type: worker
+    name: dweaibot-signer
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_all.py

@@ -1,0 +1,6 @@
+.env
+keystore.json
+daily_usage.json
+.venv/
+__pycache__/
+*.pyc

@@ -66,13 +66,15 @@ def signer_headers():
 
 
 async def signer_get(path: str):
-    async with httpx.AsyncClient(timeout=20) as client:
+    # trust_env=False: panggilan ke signer localhost tidak boleh lewat proxy
+    # dan tidak boleh gagal karena variabel proxy/no_proxy di host.
+    async with httpx.AsyncClient(timeout=20, trust_env=False) as client:
         r = await client.get(f"{SIGNER_URL}{path}", headers=signer_headers())
     return r
 
 
 async def signer_post(path: str, payload: dict):
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
         r = await client.post(f"{SIGNER_URL}{path}", json=payload, headers=signer_headers())
     return r
 

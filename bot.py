@@ -29,7 +29,7 @@ from decimal import Decimal
 
 import httpx
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -82,13 +82,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text(
         "DWEAIBOT online.\n\n"
+        "Semua perintah:\n"
+        "/start - tampilkan daftar perintah ini\n"
+        "/help - tampilkan daftar perintah ini\n"
         "/createwallet - buat wallet bot baru (hanya kalau belum ada, tanpa kirim key)\n"
         "/address - lihat alamat wallet signer\n"
-        "/balance <chain> - cek saldo, mis: /balance ethereum\n"
-        "/transfer <chain> <alamat> <jumlah> - transfer native, wajib konfirmasi tombol\n"
-        "/help - bantuan\n\n"
+        "/balance <chain> - cek saldo, contoh: /balance ethereum\n"
+        "/transfer <chain> <alamat> <jumlah> - transfer native, contoh: /transfer ethereum 0xAbc... 0.005\n\n"
+        "Transfer itu 2 langkah: kirim /transfer, lalu tekan tombol Ya, kirim (atau Batal) yang muncul. "
+        "Tanpa tombol Ya, transfer tidak dikirim.\n\n"
         "Chain: ethereum, bsc, base, polygon, arbitrum\n"
-        "Limit default signer: max 0.01 / hari 0.02 native."
+        "Transfer hanya native (ETH/BNB/dll), bukan swap/mint.\n"
+        "Limit default signer: max 0.01 / hari 0.02 native (bukan USD).\n"
+        "Bot ini owner-only dan tidak pernah meminta private key / seed phrase di chat."
     )
 
 
@@ -209,6 +215,19 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def post_init(app: Application):
+    # Daftarkan daftar perintah ke Telegram, supaya saat mengetik "/"
+    # di kolom chat, semua perintah muncul sebagai menu autocomplete.
+    await app.bot.set_my_commands([
+        BotCommand("start", "Tampilkan semua perintah"),
+        BotCommand("help", "Tampilkan semua perintah"),
+        BotCommand("createwallet", "Buat wallet bot baru"),
+        BotCommand("address", "Lihat alamat wallet signer"),
+        BotCommand("balance", "Cek saldo: /balance <chain>"),
+        BotCommand("transfer", "Transfer native: /transfer <chain> <alamat> <jumlah>"),
+    ])
+
+
 def main():
     if not TELEGRAM_TOKEN:
         raise SystemExit("TELEGRAM_TOKEN belum diatur di .env")
@@ -216,7 +235,7 @@ def main():
         raise SystemExit("ALLOWED_TELEGRAM_USER_ID belum diatur di .env")
     if not SIGNER_SECRET:
         raise SystemExit("SIGNER_API_SECRET belum diatur di .env")
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    app = Application.builder().token(TELEGRAM_TOKEN).post_init(post_init).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("createwallet", createwallet))

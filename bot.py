@@ -136,16 +136,32 @@ async def address(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Alamat wallet:\n{r.json().get('address')}")
 
 
+CHAIN_ALIASES = {
+    "eth": "ethereum", "etherium": "ethereum", "ethereum": "ethereum",
+    "bnb": "bsc", "binance": "bsc", "bsc": "bsc",
+    "matic": "polygon", "polygon": "polygon",
+    "arb": "arbitrum", "arbitrum": "arbitrum", "base": "base",
+}
+
+
+def normalize_chain(chain: str) -> str:
+    return CHAIN_ALIASES.get(chain.lower().strip(), chain.lower().strip())
+
+
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await reject_if_not_owner(update):
         return
     if not context.args:
-        await update.message.reply_text("Pakai: /balance <chain>\nContoh: /balance ethereum")
+        await update.message.reply_text("Pakai: /balance <chain>\nContoh: /balance ethereum\nChain: ethereum, bsc, base, polygon, arbitrum")
         return
-    chain = context.args[0].lower()
+    chain = normalize_chain(context.args[0])
     r = await signer_get(f"/balance/{chain}")
     if r.status_code != 200:
-        await update.message.reply_text(f"Gagal cek saldo: {r.status_code} {r.text[:200]}")
+        await update.message.reply_text(
+            f"Gagal cek saldo: {r.status_code} {r.text[:200]}\n"
+            "Cek ejaan chain-nya, contoh yang benar: /balance ethereum (bukan etherium).\n"
+            "Chain: ethereum, bsc, base, polygon, arbitrum"
+        )
         return
     d = r.json()
     await update.message.reply_text(
@@ -161,7 +177,7 @@ async def transfer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Pakai: /transfer <chain> <alamat> <jumlah>\nContoh: /transfer ethereum 0xAbc... 0.005"
         )
         return
-    chain, to, amount_str = context.args[0].lower(), context.args[1], context.args[2]
+    chain, to, amount_str = normalize_chain(context.args[0]), context.args[1], context.args[2]
     try:
         amount = Decimal(amount_str)
         if amount <= 0:

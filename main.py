@@ -59,6 +59,27 @@ CHAINS = {
     "arbitrum": {"chain_id": 42161, "rpc": os.getenv("ARBITRUM_RPC", "")},
 }
 
+# Alias chain yang sering salah ketik / disingkat, dipetakan ke nama resmi.
+# Termasuk "etherium" (typo umum untuk ethereum) yang sempat membuat
+# /balance gagal 400 di live bot, padahal chain-nya sebenarnya tersedia.
+CHAIN_ALIASES = {
+    "eth": "ethereum",
+    "etherium": "ethereum",
+    "ethereum": "ethereum",
+    "bnb": "bsc",
+    "binance": "bsc",
+    "bsc": "bsc",
+    "matic": "polygon",
+    "polygon": "polygon",
+    "arb": "arbitrum",
+    "arbitrum": "arbitrum",
+    "base": "base",
+}
+
+
+def normalize_chain(chain: str) -> str:
+    return CHAIN_ALIASES.get((chain or "").lower().strip(), (chain or "").lower().strip())
+
 
 def authenticate(token):
     # Terima "Bearer <secret>" atau secret mentah.
@@ -91,7 +112,7 @@ def get_account():
 
 
 def get_web3(chain):
-    config = CHAINS.get((chain or "").lower())
+    config = CHAINS.get(normalize_chain(chain))
     if not config or not config["rpc"]:
         raise HTTPException(status_code=400, detail="Chain atau RPC tidak tersedia")
     w3 = Web3(Web3.HTTPProvider(config["rpc"], request_kwargs={"timeout": 15}))

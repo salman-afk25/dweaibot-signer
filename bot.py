@@ -30,6 +30,7 @@ from decimal import Decimal
 import httpx
 from dotenv import load_dotenv
 from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -237,7 +238,21 @@ def main():
         raise SystemExit("ALLOWED_TELEGRAM_USER_ID belum diatur di .env")
     if not SIGNER_SECRET:
         raise SystemExit("SIGNER_API_SECRET belum diatur di .env")
-    app = Application.builder().token(TELEGRAM_TOKEN).post_init(post_init).build()
+    # Bersihkan no_proxy: entri IPv6 dalam kurung di beberapa host (mis. [::1])
+    # membuat httpx gagal parsing port saat membangun klien Telegram.
+    # Localhost tetap dikecualikan dari proxy, sisanya lewat proxy host.
+    os.environ["no_proxy"] = "localhost,127.0.0.1"
+    os.environ["NO_PROXY"] = "localhost,127.0.0.1"
+    # Timeout Telegram diperbesar: lewat proxy VM, getMe saja bisa makan
+    # ~27 detik, jadi timeout default 5 detik PTB selalu TimedOut di sini.
+    request = HTTPXRequest(
+        connection_pool_size=8,
+        connect_timeout=30.0,
+        read_timeout=60.0,
+        write_timeout=60.0,
+        pool_timeout=30.0,
+    )
+    app = Application.builder().token(TELEGRAM_TOKEN).request(request).post_init(post_init).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("createwallet", createwallet))
